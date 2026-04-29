@@ -99,9 +99,33 @@ void setup() {
    delay(100);
    Serial.println("Motor is Live. Running Soft Hold Loop.");
 }
+
+unsigned long previousMillis = 0;
+const long interval = 2000; // Time between moves (2000 milliseconds = 2 seconds)
+int position_state = 0; // Keeps track of where we are
+float target_position = 0.0; 
+
 void loop() {
-   // Soft hold: 0.0 rad position, 0.0 speed, 5.0 stiffness (KP), 0.5 damping (KD), 0.0 torque feedforward
-   pack_cmd(0.0, 0.0, 5.0, 0.5, 0.0);
-   // Command loop running at ~100Hz
-   delay(10);
+   unsigned long currentMillis = millis();
+
+   // Every 2 seconds, flip the target position
+   if (currentMillis - previousMillis >= interval) {
+       previousMillis = currentMillis; // Reset the timer
+       
+       if (position_state == 0) {
+           target_position = 3.14159; // Move to 180 degrees (Pi radians)
+           position_state = 1;
+           Serial.println("Sweeping to 180 degrees (3.14 rad)");
+       } else {
+           target_position = 0.0; // Move back to 0 degrees
+           position_state = 0;
+           Serial.println("Sweeping to 0 degrees (0.0 rad)");
+       }
+   }
+
+   // Continuously spam the motor with the current target position at 100Hz
+   // Target Position, 0.0 speed limit, 5.0 stiffness, 0.5 damping, 0.0 torque
+   pack_cmd(target_position, 0.0, 5.0, 0.5, 0.0);
+   
+   delay(10); // Maintain the 100Hz heartbeat
 }
