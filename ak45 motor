@@ -1,11 +1,13 @@
 #include "driver/twai.h"
-// --- WIRING PINS ---
-// Change these to match your ESP32 to CAN Transceiver wiring
+
+//PINS
 #define CAN_TX_PIN GPIO_NUM_27
 #define CAN_RX_PIN GPIO_NUM_26
-// --- MOTOR ID ---
+
+//MOTOR ID
 #define MOTOR_ID 1
-// --- AK45-36 STRICT FIRMWARE LIMITS ---
+
+//AK45-36 LIMITS 
 #define P_MIN -12.5f
 #define P_MAX  12.5f
 #define V_MIN -6.0f
@@ -16,6 +18,7 @@
 #define KP_MAX 500.0f
 #define KD_MIN 0.0f
 #define KD_MAX 5.0f
+
 // Float to Unsigned Integer Conversion for protocol packing
 int float_to_uint(float x, float x_min, float x_max, int bits) {
    float span = x_max - x_min;
@@ -24,7 +27,7 @@ int float_to_uint(float x, float x_min, float x_max, int bits) {
    else if(x > x_max) x = x_max;
    return (int) ((x - offset) * ((float)((1 << bits) - 1)) / span);
 }
-// Send standard CAN frame
+// Send CAN
 void send_can_message(uint32_t id, uint8_t* data, uint8_t len) {
    twai_message_t message;
    message.identifier = id;
@@ -36,7 +39,8 @@ void send_can_message(uint32_t id, uint8_t* data, uint8_t len) {
    }
    twai_transmit(&message, pdMS_TO_TICKS(10));
 }
-// --- SPECIAL HEX COMMANDS ---
+
+//SPECIAL HEX COMMANDS
 void enter_mit_mode() {
    // Array to enter motor control mode
    uint8_t data[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC};
@@ -47,9 +51,9 @@ void set_zero_position() {
    uint8_t data[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE};
    send_can_message(MOTOR_ID, data, 8);
 }
-// --- PACK AND SEND MIT COMMAND ---
+//PACK AND SEND MIT COMMAND (According to Manual)
 void pack_cmd(float p_des, float v_des, float kp, float kd, float t_ff) {
-   // 1. Constrain values to firmware limits
+   // 1. Constrain to limits
    p_des = constrain(p_des, P_MIN, P_MAX);
    v_des = constrain(v_des, V_MIN, V_MAX);
    kp = constrain(kp, KP_MIN, KP_MAX);
@@ -108,16 +112,16 @@ float target_position = 0.0;
 void loop() {
    unsigned long currentMillis = millis();
 
-   // Every 2 seconds, flip the target position
+   // Every 2 seconds, flip the  position
    if (currentMillis - previousMillis >= interval) {
        previousMillis = currentMillis; // Reset the timer
        
        if (position_state == 0) {
-           target_position = 3.14159; // Move to 180 degrees (Pi radians)
+           target_position = 3.14159; // Move to 180 
            position_state = 1;
            Serial.println("Sweeping to 180 degrees (3.14 rad)");
        } else {
-           target_position = 0.0; // Move back to 0 degrees
+           target_position = 0.0; // Move back to 0
            position_state = 0;
            Serial.println("Sweeping to 0 degrees (0.0 rad)");
        }
@@ -127,5 +131,5 @@ void loop() {
    // Target Position, 0.0 speed limit, 5.0 stiffness, 0.5 damping, 0.0 torque
    pack_cmd(target_position, 0.0, 5.0, 0.5, 0.0);
    
-   delay(10); // Maintain the 100Hz heartbeat
+   delay(10); // Maintain the 100Hz 
 }
